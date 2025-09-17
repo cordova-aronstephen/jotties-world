@@ -1,4 +1,4 @@
-// Basic Phaser config
+// Phaser game configuration
 const config = {
   type: Phaser.AUTO,
   width: 800,
@@ -20,32 +20,38 @@ let player;
 let cursors;
 
 function preload() {
-  // Placeholder graphics (we can replace later with pixel art)
+  // Background placeholder (replace later with tileset)
   this.load.image('background', 'https://labs.phaser.io/assets/skies/sky4.png');
-  this.load.spritesheet('jottie', 'https://labs.phaser.io/assets/sprites/dude.png',
-    { frameWidth: 32, frameHeight: 48 });
+
+  // Load Jottie's sprite sheet
+  this.load.spritesheet('jottie', 'assets/jottie.png', {
+    frameWidth: 32,   // sprite frame width
+    frameHeight: 48   // sprite frame height
+  });
 }
 
 function create() {
-  // Add background
+  // Background
   this.add.image(400, 300, 'background');
 
   // Add player
   player = this.physics.add.sprite(400, 300, 'jottie');
   player.setCollideWorldBounds(true);
 
-  // Animations (walking)
+  // Animations (adjust frame numbers if sprite sheet differs)
   this.anims.create({
     key: 'left',
     frames: this.anims.generateFrameNumbers('jottie', { start: 0, end: 3 }),
     frameRate: 10,
     repeat: -1
   });
+
   this.anims.create({
     key: 'turn',
     frames: [{ key: 'jottie', frame: 4 }],
     frameRate: 20
   });
+
   this.anims.create({
     key: 'right',
     frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 8 }),
