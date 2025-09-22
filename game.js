@@ -29,21 +29,22 @@ function preload() {
     this.load.spritesheet('jottie', 'assets/jottie.png', { frameWidth: 384, frameHeight: 500 });
     this.load.spritesheet('jottie1', 'assets/jottie_1.png', { frameWidth: 250, frameHeight: 335 });
 
-    // tileset
     this.load.spritesheet('tiles', 'assets/map_1.png', {
         frameWidth: 16,
         frameHeight: 16,
         margin: 1,
         spacing: 1
     });
+
+    // load catalog JSON
+    this.load.json('tilesetCatalog', 'assets/tileset_catalog_described.json');
 }
 
 function create() {
-    // build world
-    world = new WorldBuilder(this);
+    const catalog = this.cache.json.get('tilesetCatalog');
+    world = new WorldBuilder(this, catalog);
     world.buildWorld();
 
-    // player
     player = this.physics.add.sprite(200, 200, 'jottie', 1);
     setDynamicScale('jottie');
     player.setCollideWorldBounds(true);
@@ -51,7 +52,6 @@ function create() {
 
     cursors = this.input.keyboard.createCursorKeys();
 
-    // animations
     this.anims.create({ key: 'idle-front', frames: [ { key: 'jottie', frame: 1 } ], frameRate: 1, repeat: -1 });
     this.anims.create({ key: 'idle-back', frames: [ { key: 'jottie', frame: 3 } ], frameRate: 1, repeat: -1 });
     this.anims.create({ key: 'walk-right', frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 9 }), frameRate: 8, repeat: -1 });
@@ -61,7 +61,6 @@ function create() {
 
     player.anims.play('idle-front');
 
-    // breathing
     breathTween = this.tweens.add({
         targets: player,
         scaleX: `+=0.02`,
@@ -82,7 +81,6 @@ function create() {
         paused: true
     });
 
-    // camera
     this.cameras.main.setBounds(0, 0, world.width, world.height);
     this.cameras.main.startFollow(player, true, 0.1, 0.1);
 }

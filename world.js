@@ -1,52 +1,65 @@
 export class WorldBuilder {
-    constructor(scene) {
+    constructor(scene, catalog) {
         this.scene = scene;
+        this.catalog = catalog; // JSON object
         this.tileSize = 16;
-        this.width = 100 * this.tileSize;   // bigger world
-        this.height = 100 * this.tileSize;
-        this.ground = null;
+        this.mapWidth = 100;   // tiles
+        this.mapHeight = 100;  // tiles
+        this.tileIndex = {};
+
+        // quick lookup by name
+        catalog.tiles.forEach(t => {
+            this.tileIndex[t.name] = t.index;
+        });
     }
 
     buildWorld() {
-        const mapWidth = 100;
-        const mapHeight = 100;
-
-        // create tilemap
         const map = this.scene.make.tilemap({
             tileWidth: this.tileSize,
             tileHeight: this.tileSize,
-            width: mapWidth,
-            height: mapHeight
+            width: this.mapWidth,
+            height: this.mapHeight
         });
 
+        // Link the tilemap to your spritesheet
         const tileset = map.addTilesetImage('tiles', null, this.tileSize, this.tileSize, 1, 1);
 
-        this.ground = map.createBlankLayer('Ground', tileset);
+        // Create a ground layer that actually uses the tiles
+        const ground = map.createBlankLayer('Ground', tileset);
 
-        // fill with grass (id ~0, adjust to your JSON later)
-        this.ground.fill(5);
+        // -------------------------
+        // Fill base with grass
+        // -------------------------
+        ground.fill(this.tileIndex["grass"] ?? 0);
 
-        // simple pond
+        // -------------------------
+        // Add a pond
+        // -------------------------
         for (let y = 40; y < 50; y++) {
             for (let x = 40; x < 50; x++) {
-                this.ground.putTileAt(20, x, y); // water tile id
+                ground.putTileAt(this.tileIndex["water"] ?? 0, x, y);
             }
         }
 
-        // dirt path
-        for (let x = 0; x < mapWidth; x++) {
-            this.ground.putTileAt(10, x, 60); // horizontal path
+        // -------------------------
+        // Add a dirt path
+        // -------------------------
+        for (let x = 0; x < this.mapWidth; x++) {
+            ground.putTileAt(this.tileIndex["dirt"] ?? 0, x, 60);
+        }
+        for (let y = 30; y < this.mapHeight; y++) {
+            ground.putTileAt(this.tileIndex["dirt"] ?? 0, 60, y);
         }
 
-        for (let y = 30; y < mapHeight; y++) {
-            this.ground.putTileAt(10, 60, y); // vertical path
-        }
-
-        // scatter trees
+        // -------------------------
+        // Sprinkle some trees
+        // -------------------------
         for (let i = 0; i < 50; i++) {
-            const x = Phaser.Math.Between(0, mapWidth - 1);
-            const y = Phaser.Math.Between(0, mapHeight - 1);
-            this.ground.putTileAt(35, x, y); // tree tile id
+            const x = Phaser.Math.Between(0, this.mapWidth - 1);
+            const y = Phaser.Math.Between(0, this.mapHeight - 1);
+            ground.putTileAt(this.tileIndex["tree"] ?? 0, x, y);
         }
+
+        this.scene.cameras.main.setBounds(0, 0, this.mapWidth * this.tileSize, this.mapHeight * this.tileSize);
     }
 }
