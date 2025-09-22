@@ -62,28 +62,25 @@ function create() {
     // ------------------------
     // Breathing tween (front idle)
     // ------------------------
-    // Breathing tween (front idle)
     breathTween = this.tweens.add({
         targets: player,
-        scaleX: player.scaleX * 1.01,
-        scaleY: player.scaleY * 0.99,
-        duration: 800,
-        yoyo: true,
-        repeat: -1,
-        paused: true
-    });
-
-    // Back idle breathing (subtler)
-    backBreathTween = this.tweens.add({
-        targets: player,
-        scaleX: player.scaleX * 1.005,
-        scaleY: player.scaleY * 0.995,
+        scaleX: `+=0.02`,
+        scaleY: `-=0.02`,
         duration: 1000,
         yoyo: true,
         repeat: -1,
         paused: true
     });
 
+    backBreathTween = this.tweens.add({
+        targets: player,
+        scaleX: `+=0.01`,
+        scaleY: `-=0.01`,
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        paused: true
+    });
 }
 
 function update() {
@@ -96,6 +93,15 @@ function update() {
     const right = cursors.right.isDown;
 
     // ------------------------
+    // Determine primary facing direction
+    // ------------------------
+    if (up || down) {
+        lastDirection = up ? 'up' : 'down';
+    } else if (left || right) {
+        lastDirection = left ? 'left' : 'right';
+    }
+
+    // ------------------------
     // Vertical priority (diagonal uses vertical frames)
     // ------------------------
     if (up) {
@@ -106,7 +112,6 @@ function update() {
         player.anims.play('walk-up', true);
         setDynamicScale('jottie1');
         player.setOrigin(0.5, 1);
-        lastDirection = 'up';
         moving = true;
 
     } else if (down) {
@@ -117,7 +122,6 @@ function update() {
         player.anims.play('walk-down', true);
         setDynamicScale('jottie1');
         player.setOrigin(0.5, 1);
-        lastDirection = 'down';
         moving = true;
 
     } else if (left) {
@@ -126,7 +130,6 @@ function update() {
         player.setFlipX(true);
         setDynamicScale('jottie');
         player.setOrigin(0.5, 1);
-        lastDirection = 'left';
         moving = true;
 
     } else if (right) {
@@ -135,7 +138,6 @@ function update() {
         player.setFlipX(false);
         setDynamicScale('jottie');
         player.setOrigin(0.5, 1);
-        lastDirection = 'right';
         moving = true;
     }
 
@@ -163,7 +165,6 @@ function update() {
         breathTween.pause();
         backBreathTween.pause();
     }
-
 }
 
 // ------------------------
