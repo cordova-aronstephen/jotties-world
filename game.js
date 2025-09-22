@@ -1,7 +1,7 @@
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 2500,
+    height: 1700,
     physics: { default: 'arcade', arcade: { debug: false } },
     scene: { preload, create, update }
 };
@@ -25,8 +25,6 @@ let breathTween = null;
 let backBreathTween = null;
 
 function preload() {
-    this.load.image('grass', 'assets/grass.png');
-
     // Horizontal + idle + turn
     this.load.spritesheet('jottie', 'assets/jottie.png', { frameWidth: 384, frameHeight: 500 });
 
@@ -35,10 +33,9 @@ function preload() {
 }
 
 function create() {
-    this.add.tileSprite(400, 300, 800, 600, 'grass');
 
     // Player starting idle front
-    player = this.physics.add.sprite(400, 300, 'jottie', 1);
+    player = this.physics.add.sprite(1250, 700, 'jottie', 1);
     setDynamicScale('jottie');
     player.setCollideWorldBounds(true);
     player.setOrigin(0.5, 1);
