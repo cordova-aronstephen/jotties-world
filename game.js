@@ -10,134 +10,172 @@ const game = new Phaser.Game(config);
 
 let player;
 let cursors;
+let lastDirection = 'down';
+const BASE_SCALE = 0.25;
+const SPEED = 180;
+
+// Frame heights for dynamic scaling
+const FRAME_HEIGHTS = {
+    jottie: 500,   // horizontal + idle
+    jottie1: 335   // vertical walking
+};
+
+// Breathing tween
+let breathTween = null;
+let backBreathTween = null;
 
 function preload() {
-    // Background
     this.load.image('grass', 'assets/grass.png');
 
-    // Main spritesheet (idle + walk right/left)
-    this.load.spritesheet('jottie', 'assets/jottie.png', {
-        frameWidth: 384,
-        frameHeight: 500
-    });
+    // Horizontal + idle + turn
+    this.load.spritesheet('jottie', 'assets/jottie.png', { frameWidth: 384, frameHeight: 500 });
 
-    // Additional movements (walk up/down, turning)
-    this.load.spritesheet('jottie1', 'assets/jottie_1.png', {
-        frameWidth: 250, // 1000 / 4 columns
-        frameHeight: 335 // 1005 / 3 rows approx
-    });
+    // Vertical walking
+    this.load.spritesheet('jottie1', 'assets/jottie_1.png', { frameWidth: 250, frameHeight: 335 });
 }
 
 function create() {
-    // Background
     this.add.tileSprite(400, 300, 800, 600, 'grass');
 
-    // Player sprite
-    player = this.physics.add.sprite(400, 300, 'jottie', 0);
-    player.setScale(0.25);
+    // Player starting idle front
+    player = this.physics.add.sprite(400, 300, 'jottie', 1);
+    setDynamicScale('jottie');
     player.setCollideWorldBounds(true);
+    player.setOrigin(0.5, 1);
 
     cursors = this.input.keyboard.createCursorKeys();
 
     // ------------------------
-    // ANIMATIONS
+    // Animations
     // ------------------------
+    this.anims.create({ key: 'idle-front', frames: [ { key: 'jottie', frame: 1 } ], frameRate: 1, repeat: -1 });
+    this.anims.create({ key: 'idle-back', frames: [ { key: 'jottie', frame: 3 } ], frameRate: 1, repeat: -1 });
 
-    // --- Idle breathing (jottie row 0 frames 0-1) ---
-    this.anims.create({
-        key: 'idle',
-        frames: this.anims.generateFrameNumbers('jottie', { start: 0, end: 1 }),
-        frameRate: 1,
-        repeat: -1
+    this.anims.create({ key: 'walk-right', frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 9 }), frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'walk-left', frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 9 }), frameRate: 8, repeat: -1 });
+
+    this.anims.create({ key: 'walk-up', frames: this.anims.generateFrameNumbers('jottie1', { start: 3, end: 8 }), frameRate: 8, repeat: -1 });
+    this.anims.create({ key: 'walk-down', frames: this.anims.generateFrameNumbers('jottie1', { start: 0, end: 2 }), frameRate: 8, repeat: -1 });
+
+    player.anims.play('idle-front');
+
+    // ------------------------
+    // Breathing tween (front idle)
+    // ------------------------
+    // Breathing tween (front idle)
+    breathTween = this.tweens.add({
+        targets: player,
+        scaleX: player.scaleX * 1.01,
+        scaleY: player.scaleY * 0.99,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        paused: true
     });
 
-    // --- Walk right (jottie row 1 frames 0-3) ---
-    this.anims.create({
-        key: 'walk-right',
-        frames: this.anims.generateFrameNumbers('jottie', { start: 4, end: 7 }),
-        frameRate: 6,
-        repeat: -1
+    // Back idle breathing (subtler)
+    backBreathTween = this.tweens.add({
+        targets: player,
+        scaleX: player.scaleX * 1.005,
+        scaleY: player.scaleY * 0.995,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+        paused: true
     });
 
-    // --- Walk left (same frames flipped) ---
-    this.anims.create({
-        key: 'walk-left',
-        frames: this.anims.generateFrameNumbers('jottie', { start: 4, end: 7 }),
-        frameRate: 6,
-        repeat: -1
-    });
-
-    // --- Walk down (jottie_1 first row frames 0-2) ---
-    this.anims.create({
-        key: 'walk-down',
-        frames: this.anims.generateFrameNumbers('jottie1', { start: 0, end: 2 }),
-        frameRate: 6,
-        repeat: -1
-    });
-
-    // --- Walk up (jottie_1 first + second row frames 3-8) ---
-    this.anims.create({
-        key: 'walk-up',
-        frames: this.anims.generateFrameNumbers('jottie1', { start: 3, end: 8 }),
-        frameRate: 6,
-        repeat: -1
-    });
-
-    // --- Turning (jottie_1 third row frames 1-3) ---
-    this.anims.create({
-        key: 'turn',
-        frames: this.anims.generateFrameNumbers('jottie1', { start: 9, end: 10 }),
-        frameRate: 4,
-        repeat: 0
-    });
-
-    // Start idle
-    player.anims.play('idle');
 }
 
 function update() {
     let moving = false;
     player.setVelocity(0);
 
-    // ------------------------
-    // Horizontal movement
-    // ------------------------
-    if (cursors.left.isDown) {
-        player.setVelocityX(-120);
-        player.anims.play('walk-left', true);
-        player.setFlipX(true); // flip for left
-        player.setOrigin(0.5, 1);
-        moving = true;
-    }
-    else if (cursors.right.isDown) {
-        player.setVelocityX(120);
-        player.anims.play('walk-right', true);
-        player.setFlipX(false); // normal for right
-        player.setOrigin(0.5, 1);
-        moving = true;
-    }
+    const up = cursors.up.isDown;
+    const down = cursors.down.isDown;
+    const left = cursors.left.isDown;
+    const right = cursors.right.isDown;
 
     // ------------------------
-    // Vertical movement
+    // Vertical priority (diagonal uses vertical frames)
     // ------------------------
-    if (cursors.up.isDown) {
-        player.setVelocityY(-120);
+    if (up) {
+        player.setVelocityY(-SPEED);
+        if (left) player.setVelocityX(-SPEED);
+        else if (right) player.setVelocityX(SPEED);
+
         player.anims.play('walk-up', true);
+        setDynamicScale('jottie1');
         player.setOrigin(0.5, 1);
+        lastDirection = 'up';
         moving = true;
-    }
-    else if (cursors.down.isDown) {
-        player.setVelocityY(120);
+
+    } else if (down) {
+        player.setVelocityY(SPEED);
+        if (left) player.setVelocityX(-SPEED);
+        else if (right) player.setVelocityX(SPEED);
+
         player.anims.play('walk-down', true);
+        setDynamicScale('jottie1');
         player.setOrigin(0.5, 1);
+        lastDirection = 'down';
+        moving = true;
+
+    } else if (left) {
+        player.setVelocityX(-SPEED);
+        player.anims.play('walk-left', true);
+        player.setFlipX(true);
+        setDynamicScale('jottie');
+        player.setOrigin(0.5, 1);
+        lastDirection = 'left';
+        moving = true;
+
+    } else if (right) {
+        player.setVelocityX(SPEED);
+        player.anims.play('walk-right', true);
+        player.setFlipX(false);
+        setDynamicScale('jottie');
+        player.setOrigin(0.5, 1);
+        lastDirection = 'right';
         moving = true;
     }
 
     // ------------------------
-    // Idle
+    // Idle handling
     // ------------------------
     if (!moving) {
-        player.anims.play('idle', true);
-        player.setOrigin(0.5, 1);
+        switch (lastDirection) {
+            case 'up':
+                player.anims.play('idle-back', true);
+                setDynamicScale('jottie');
+                breathTween.pause();
+                if (!backBreathTween.isPlaying()) backBreathTween.resume();
+                break;
+            case 'down':
+            case 'left':
+            case 'right':
+                player.anims.play('idle-front', true);
+                setDynamicScale('jottie');
+                backBreathTween.pause();
+                if (!breathTween.isPlaying()) breathTween.resume();
+                break;
+        }
+    } else {
+        breathTween.pause();
+        backBreathTween.pause();
+    }
+
+}
+
+// ------------------------
+// Helper: scale vertical frames to match horizontal visual size
+// ------------------------
+function setDynamicScale(sheetKey) {
+    if (sheetKey === 'jottie1') {
+        const desiredHeight = FRAME_HEIGHTS.jottie; // 500
+        const frameHeight = FRAME_HEIGHTS.jottie1;  // 335
+        const scale = BASE_SCALE * (desiredHeight / frameHeight); // match horizontal size
+        player.setScale(scale);
+    } else {
+        player.setScale(BASE_SCALE);
     }
 }
