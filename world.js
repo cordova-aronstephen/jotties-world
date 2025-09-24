@@ -12,16 +12,13 @@ export class WorldBuilder {
         this.ambients = {};
         this.activeAmbient = null;
 
-        // house stuff
+        // house zone
         this.houseZone = null;
-        this.insideHouse = false; // track where we are
-        this.houseMap = null;
     }
 
     preload() {
-        // Load premade maps
+        // Load premade map image
         this.scene.load.image('worldMap', 'assets/map.png'); 
-        this.scene.load.image('houseMap', 'assets/house.png'); // new PNG
 
         // Background music
         this.scene.load.audio('song1', 'assets/audio/stardew_valley_overture.m4a');
@@ -33,7 +30,23 @@ export class WorldBuilder {
     }
 
     create(player) {
-        this.buildWorldMap(player);
+        // Add the map and scale it up
+        this.map = this.scene.add.image(0, 0, 'worldMap').setOrigin(0, 0);
+
+        const scaleX = this.scene.scale.width / this.map.width;
+        const scaleY = this.scene.scale.height / this.map.height;
+        const scale = Math.max(scaleX, scaleY);
+        this.map.setScale(scale);
+
+        const worldWidth = this.map.width * scale;
+        const worldHeight = this.map.height * scale;
+        this.scene.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+
+        this.map.setDepth(-1);
+
+        // Camera follow player
+        this.scene.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        this.scene.cameras.main.startFollow(player, true, 0.1, 0.1);
 
         // ------------------------
         // Music setup
@@ -80,82 +93,30 @@ export class WorldBuilder {
         this.houseZone.body.setImmovable(true);
 
         this.scene.physics.add.overlap(player, this.houseZone, () => {
-            if (!this.insideHouse) {
-                this.enterHouse(player);
-            }
-        }, null, this);
-    }
+            console.log("🏠 Player entered the house!");
 
-    buildWorldMap(player) {
-        this.map = this.scene.add.image(0, 0, 'worldMap').setOrigin(0, 0);
-
-        const scaleX = this.scene.scale.width / this.map.width;
-        const scaleY = this.scene.scale.height / this.map.height;
-        const scale = Math.max(scaleX, scaleY);
-        this.map.setScale(scale);
-
-        const worldWidth = this.map.width * scale;
-        const worldHeight = this.map.height * scale;
-        this.scene.physics.world.setBounds(0, 0, worldWidth, worldHeight);
-
-        this.map.setDepth(-1);
-
-        // Camera follow player
-        this.scene.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
-        this.scene.cameras.main.startFollow(player, true, 0.1, 0.1);
-    }
-
-    buildHouseMap(player) {
-        this.houseMap = this.scene.add.image(0, 0, 'houseMap').setOrigin(0, 0);
-
-        const scaleX = this.scene.scale.width / this.houseMap.width;
-        const scaleY = this.scene.scale.height / this.houseMap.height;
-        const scale = Math.max(scaleX, scaleY);
-        this.houseMap.setScale(scale);
-
-        const worldWidth = this.houseMap.width * scale;
-        const worldHeight = this.houseMap.height * scale;
-        this.scene.physics.world.setBounds(0, 0, worldWidth, worldHeight);
-
-        this.houseMap.setDepth(-1);
-
-        // Reset player position inside house
-        player.setPosition(worldWidth / 2, worldHeight - 100);
-
-        // Camera follow
-        this.scene.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
-        this.scene.cameras.main.startFollow(player, true, 0.1, 0.1);
-    }
-
-    enterHouse(player) {
-        this.insideHouse = true;
-
-        // Fade transition
-        this.scene.cameras.main.fadeOut(800, 0, 0, 0);
-        this.scene.cameras.main.once('camerafadeoutcomplete', () => {
-            // Destroy world map + zone
-            if (this.map) this.map.destroy();
-            if (this.houseZone) this.houseZone.destroy();
-
-            // Stop birds, switch ambient
-            this.setAmbient("water");
+            // Switch ambient/music
+            this.setAmbient("water"); // Example: swap to water ambient
             this.music.stop();
             this.altMusic.play();
 
-            // Build house interior
-            this.buildHouseMap(player);
-
-            // Fade back in
-            this.scene.cameras.main.fadeIn(800, 0, 0, 0);
-        });
+            // Fade transition
+            this.scene.cameras.main.fadeOut(1000, 0, 0, 0);
+            this.scene.cameras.main.once('camerafadeoutcomplete', () => {
+                console.log("Now load house interior map here...");
+                // TODO: swap to another scene or replace map
+            });
+        }, null, this);
     }
 
     // Function to switch ambients
     setAmbient(key) {
+        // Stop old ambient
         if (this.activeAmbient && this.activeAmbient.isPlaying) {
             this.activeAmbient.stop();
         }
 
+        // Play new one
         if (this.ambients[key]) {
             this.activeAmbient = this.ambients[key];
             this.activeAmbient.play();

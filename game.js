@@ -169,6 +169,10 @@ function update() {
         breathTween.pause();
         backBreathTween.pause();
     }
+
+    // at the end of your update() function in game.js:
+    if (this.worldBuilder && this.worldBuilder.update) this.worldBuilder.update();
+
 }
 
 // ------------------------
