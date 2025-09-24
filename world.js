@@ -12,6 +12,7 @@ export class WorldBuilder {
 
         this.promptText = null;
         this.inHouse = false;
+        this.debugDoorGraphics = null; // debug overlay for door
     }
 
     preload() {
@@ -44,7 +45,7 @@ export class WorldBuilder {
         this.scene.input.keyboard.on('keydown-E', () => {
             if (!this.inHouse && this.scene.physics.overlap(player, this.houseZone)) {
                 this.enterHouse(player);
-            } else if (this.inHouse && this.scene.physics.overlap(player, this.doorZone)) {
+            } else if (this.inHouse && this.doorZone && this.scene.physics.overlap(player, this.doorZone)) {
                 this.leaveHouse(player);
             }
         });
@@ -63,11 +64,13 @@ export class WorldBuilder {
                 this.promptText.setText("Press E to Enter");
                 this.promptText.setPosition(player.x, player.y - 80);
                 this.promptText.setVisible(true);
-            } else if (this.inHouse && this.scene.physics.overlap(player, this.doorZone)) {
+            } 
+            else if (this.inHouse && this.doorZone && this.scene.physics.overlap(player, this.doorZone)) {
                 this.promptText.setText("Press E to Leave");
                 this.promptText.setPosition(player.x, player.y - 80);
                 this.promptText.setVisible(true);
-            } else {
+            } 
+            else {
                 this.promptText.setVisible(false);
             }
         });
@@ -111,6 +114,7 @@ export class WorldBuilder {
             if (this.map) this.map.destroy();
             if (this.houseZone) this.houseZone.destroy();
             if (this.doorZone) this.doorZone.destroy();
+            if (this.debugDoorGraphics) this.debugDoorGraphics.destroy();
 
             // Add house interior at world origin
             const houseKey = 'houseInterior';
@@ -134,15 +138,20 @@ export class WorldBuilder {
             player.setOrigin(0.5, 1);
             player.setDepth(1);
 
-            // Door zone (move up so it's reachable + prompt shows)
+            // Door zone (raised up)
             const doorWidth = 80;
             const doorHeight = 40;
             const doorX = mapScaledWidth / 2 - doorWidth / 2;
-            const doorY = mapScaledHeight - 160; // lifted higher
+            const doorY = mapScaledHeight - 180; 
             this.doorZone = this.scene.add.zone(doorX, doorY, doorWidth, doorHeight).setOrigin(0, 0);
             this.scene.physics.add.existing(this.doorZone);
             this.doorZone.body.setAllowGravity(false);
             this.doorZone.body.setImmovable(true);
+
+            // 🔎 Debug overlay so you can see the zone
+            this.debugDoorGraphics = this.scene.add.graphics();
+            this.debugDoorGraphics.fillStyle(0xff0000, 0.3);
+            this.debugDoorGraphics.fillRect(doorX, doorY, doorWidth, doorHeight);
 
             this.scene.cameras.main.fadeIn(600, 0, 0, 0);
         });
@@ -160,11 +169,12 @@ export class WorldBuilder {
                 this.scene.cameras.main.once('camerafadeoutcomplete', () => {
                     if (this.map) this.map.destroy();
                     if (this.doorZone) this.doorZone.destroy();
+                    if (this.debugDoorGraphics) this.debugDoorGraphics.destroy();
 
                     this.loadOutsideMap(player);
 
-                    // Place player just below house zone, further down + slightly left
-                    const outsideX = this.houseZone.x + this.houseZone.width / 2 - 10;
+                    // Place player further left + further down outside
+                    const outsideX = this.houseZone.x + this.houseZone.width / 2 - 70; // more left
                     const outsideY = this.houseZone.y + this.houseZone.height + 50;
                     player.setPosition(outsideX, outsideY);
 
