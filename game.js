@@ -1,3 +1,5 @@
+import { WorldBuilder } from './world.js';
+
 const config = {
     type: Phaser.AUTO,
     width: 2500,
@@ -30,6 +32,10 @@ function preload() {
 
     // Vertical walking
     this.load.spritesheet('jottie1', 'assets/jottie_1.png', { frameWidth: 250, frameHeight: 335 });
+
+    this.worldBuilder = new WorldBuilder(this);
+    this.worldBuilder.preload();
+
 }
 
 function create() {
@@ -40,6 +46,8 @@ function create() {
     player.setOrigin(0.5, 1);
 
     cursors = this.input.keyboard.createCursorKeys();
+
+    this.worldBuilder.create(player);
 
     // ------------------------
     // Animations
