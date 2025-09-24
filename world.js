@@ -11,6 +11,9 @@ export class WorldBuilder {
         // ambients
         this.ambients = {};
         this.activeAmbient = null;
+
+        // house zone
+        this.houseZone = null;
     }
 
     preload() {
@@ -18,13 +21,12 @@ export class WorldBuilder {
         this.scene.load.image('worldMap', 'assets/map.png'); 
 
         // Background music
-        this.scene.load.audio('song1', 'assets/audio/song1.mp3');
-        this.scene.load.audio('song2', 'assets/audio/song2.mp3');
+        this.scene.load.audio('song1', 'assets/audio/stardew_valley_overture.m4a');
+        this.scene.load.audio('song2', 'assets/audio/stardew_valley_spring.m4a');
 
         // Ambient loops
-        this.scene.load.audio('birds', 'assets/audio/birds.mp3');
-        this.scene.load.audio('water', 'assets/audio/water.mp3');
-        this.scene.load.audio('house', 'assets/audio/muffled.mp3');
+        this.scene.load.audio('birds', 'assets/audio/birds.m4a');
+        this.scene.load.audio('water', 'assets/audio/water.m4a');
     }
 
     create(player) {
@@ -69,13 +71,42 @@ export class WorldBuilder {
         // Ambient setup
         // ------------------------
         this.ambients = {
-            birds: this.scene.sound.add('birds', { loop: true, volume: 0.4 }),
-            water: this.scene.sound.add('water', { loop: true, volume: 0.4 }),
-            house: this.scene.sound.add('house', { loop: true, volume: 0.2 })
+            birds: this.scene.sound.add('birds', { loop: true, volume: 0.04 }),
+            water: this.scene.sound.add('water', { loop: true, volume: 0.4 })
         };
 
         // Start with birds ambient outside
         this.setAmbient("birds");
+
+        // ------------------------
+        // House trigger zone
+        // ------------------------
+        const houseX = 200;
+        const houseY = 207;
+        const houseWidth = 53;
+        const houseHeight = 105;
+
+        this.houseZone = this.scene.add.zone(houseX, houseY, houseWidth, houseHeight)
+            .setOrigin(0, 0);
+        this.scene.physics.add.existing(this.houseZone);
+        this.houseZone.body.setAllowGravity(false);
+        this.houseZone.body.setImmovable(true);
+
+        this.scene.physics.add.overlap(player, this.houseZone, () => {
+            console.log("🏠 Player entered the house!");
+
+            // Switch ambient/music
+            this.setAmbient("water"); // Example: swap to water ambient
+            this.music.stop();
+            this.altMusic.play();
+
+            // Fade transition
+            this.scene.cameras.main.fadeOut(1000, 0, 0, 0);
+            this.scene.cameras.main.once('camerafadeoutcomplete', () => {
+                console.log("Now load house interior map here...");
+                // TODO: swap to another scene or replace map
+            });
+        }, null, this);
     }
 
     // Function to switch ambients
