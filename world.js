@@ -4,15 +4,9 @@ export class WorldBuilder {
         this.scene = scene;
         this.map = null;
 
-        // music
         this.music = null;
         this.altMusic = null;
 
-        // ambients
-        this.ambients = {};
-        this.activeAmbient = null;
-
-        // zones
         this.houseZone = null;
         this.doorZone = null;
 
@@ -31,9 +25,7 @@ export class WorldBuilder {
     create(player) {
         this.loadOutsideMap(player);
 
-        // ------------------------
         // Music
-        // ------------------------
         this.music = this.scene.sound.add('song1', { loop: true, volume: 0.5 });
         this.altMusic = this.scene.sound.add('song2', { loop: true, volume: 0.5 });
         this.music.play();
@@ -48,9 +40,7 @@ export class WorldBuilder {
             }
         });
 
-        // ------------------------
-        // Input for enter/exit
-        // ------------------------
+        // Enter/exit house
         this.scene.input.keyboard.on('keydown-E', () => {
             if (!this.inHouse && this.scene.physics.overlap(player, this.houseZone)) {
                 this.enterHouse(player);
@@ -59,9 +49,7 @@ export class WorldBuilder {
             }
         });
 
-        // ------------------------
         // Floating prompt
-        // ------------------------
         this.promptText = this.scene.add.text(0, 0, "", {
             font: "18px Arial",
             fill: "#fff",
@@ -69,14 +57,15 @@ export class WorldBuilder {
             padding: { x: 6, y: 3 }
         }).setOrigin(0.5).setVisible(false);
 
+        // Prompt logic
         this.scene.events.on("update", () => {
             if (!this.inHouse && this.scene.physics.overlap(player, this.houseZone)) {
                 this.promptText.setText("Press E to Enter");
-                this.promptText.setPosition(player.x, player.y - 60);
+                this.promptText.setPosition(player.x, player.y - 80);
                 this.promptText.setVisible(true);
             } else if (this.inHouse && this.scene.physics.overlap(player, this.doorZone)) {
                 this.promptText.setText("Press E to Leave");
-                this.promptText.setPosition(player.x, player.y - 60);
+                this.promptText.setPosition(player.x, player.y - 80);
                 this.promptText.setVisible(true);
             } else {
                 this.promptText.setVisible(false);
@@ -89,22 +78,19 @@ export class WorldBuilder {
 
         this.map = this.scene.add.image(0, 0, 'worldMap').setOrigin(0, 0);
 
-        // Scale to cover full screen (like before)
         const scaleX = this.scene.scale.width / this.map.width;
         const scaleY = this.scene.scale.height / this.map.height;
         const scale = Math.max(scaleX, scaleY);
         this.map.setScale(scale);
+        this.map.setDepth(-1);
 
         const worldWidth = this.map.width * scale;
         const worldHeight = this.map.height * scale;
         this.scene.physics.world.setBounds(0, 0, worldWidth, worldHeight);
-
-        this.map.setDepth(-1);
-
         this.scene.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
         this.scene.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-        // House trigger zone (adjusted for scale)
+        // House trigger zone
         const houseX = 230 * scale;
         const houseY = 250 * scale;
         const houseWidth = 53 * scale;
@@ -122,31 +108,38 @@ export class WorldBuilder {
 
         this.scene.cameras.main.fadeOut(600, 0, 0, 0);
         this.scene.cameras.main.once('camerafadeoutcomplete', () => {
-            this.map.destroy();
+            if (this.map) this.map.destroy();
             if (this.houseZone) this.houseZone.destroy();
+            if (this.doorZone) this.doorZone.destroy();
 
-            // Add interior
-            this.map = this.scene.add.image(this.scene.scale.width / 2, this.scene.scale.height / 2, 'houseInterior')
-                .setOrigin(0.5);
-
-            // Scale interior up but keep centered
+            // Add house interior at world origin
+            const houseKey = 'houseInterior';
             const scale = 3;
+            const houseWidth = 918;
+            const houseHeight = 515;
+
+            this.map = this.scene.add.image(0, 0, houseKey).setOrigin(0, 0);
             this.map.setScale(scale);
+            this.map.setDepth(0);
 
-            const worldWidth = this.map.width * scale;
-            const worldHeight = this.map.height * scale;
-            this.scene.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+            const mapScaledWidth = houseWidth * scale;
+            const mapScaledHeight = houseHeight * scale;
 
-            this.scene.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
-            this.scene.cameras.main.startFollow(player, true, 0.1, 0.1);
+            this.scene.physics.world.setBounds(0, 0, mapScaledWidth, mapScaledHeight);
+            this.scene.cameras.main.setBounds(0, 0, mapScaledWidth, mapScaledHeight);
+            this.scene.cameras.main.centerOn(mapScaledWidth / 2, mapScaledHeight / 2);
 
-            // Place Jot inside bottom center
-            player.setPosition(worldWidth / 2, worldHeight - 120);
+            // Player inside house (spawn higher)
+            player.setPosition(mapScaledWidth / 2, mapScaledHeight - 200);
+            player.setOrigin(0.5, 1);
+            player.setDepth(1);
 
-            // Door zone (bottom center)
-            const doorX = worldWidth / 2 - 40;
-            const doorY = worldHeight - 120;
-            this.doorZone = this.scene.add.zone(doorX, doorY, 80, 40).setOrigin(0, 0);
+            // Door zone (move up so it's reachable + prompt shows)
+            const doorWidth = 80;
+            const doorHeight = 40;
+            const doorX = mapScaledWidth / 2 - doorWidth / 2;
+            const doorY = mapScaledHeight - 160; // lifted higher
+            this.doorZone = this.scene.add.zone(doorX, doorY, doorWidth, doorHeight).setOrigin(0, 0);
             this.scene.physics.add.existing(this.doorZone);
             this.doorZone.body.setAllowGravity(false);
             this.doorZone.body.setImmovable(true);
@@ -158,7 +151,6 @@ export class WorldBuilder {
     leaveHouse(player) {
         this.inHouse = false;
 
-        // Walk-down animation
         this.scene.tweens.add({
             targets: player,
             y: player.y + 40,
@@ -166,13 +158,15 @@ export class WorldBuilder {
             onComplete: () => {
                 this.scene.cameras.main.fadeOut(600, 0, 0, 0);
                 this.scene.cameras.main.once('camerafadeoutcomplete', () => {
-                    this.map.destroy();
+                    if (this.map) this.map.destroy();
                     if (this.doorZone) this.doorZone.destroy();
 
                     this.loadOutsideMap(player);
 
-                    // Place Jot just outside house
-                    player.setPosition(260, 400);
+                    // Place player just below house zone, further down + slightly left
+                    const outsideX = this.houseZone.x + this.houseZone.width / 2 - 10;
+                    const outsideY = this.houseZone.y + this.houseZone.height + 50;
+                    player.setPosition(outsideX, outsideY);
 
                     this.scene.cameras.main.fadeIn(600, 0, 0, 0);
                 });
