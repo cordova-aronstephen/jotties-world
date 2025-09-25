@@ -5,39 +5,60 @@ export default class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // --- Loading screen style ---
-        this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x2a2a2a)
-            .setOrigin(0, 0);
-
-        const loadingText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 60,
-            "Loading...", {
-                font: "32px Georgia",
-                fill: "#ffffff"
-            }).setOrigin(0.5);
-
-        const progressBar = this.add.graphics();
-        const progressBox = this.add.graphics();
-        progressBox.fillStyle(0x222222, 0.8);
-        progressBox.fillRect(this.scale.width / 2 - 160, this.scale.height / 2 - 20, 320, 40);
-
-        this.load.on('progress', (value) => {
-            progressBar.clear();
-            progressBar.fillStyle(0xffffff, 1);
-            progressBar.fillRect(this.scale.width / 2 - 150, this.scale.height / 2 - 10, 300 * value, 20);
-        });
-
-        this.load.on('complete', () => {
-            progressBar.destroy();
-            progressBox.destroy();
-            loadingText.setText("Loading Complete!");
-        });
-
-        // --- Core assets needed before menu ---
-        this.load.audio('menuTheme', 'assets/audio/stardew_valley_loadgame.m4a');
-        this.load.image('player', 'assets/jottie.png'); // for animated background effect
+        // Background image for the boot/loading page
+        this.load.image('bootBg', 'assets/boot_bg.png'); // <-- replace with your own bg later
+        this.load.audio('bootMusic', 'assets/audio/stardew_valley_loadgame.m4a');
     }
 
     create() {
-        this.scene.start('MenuScene'); // go straight to menu
+        // Background stretched to fill screen
+        const { width, height } = this.scale;
+        this.add.image(width / 2, height / 2, 'bootBg')
+            .setOrigin(0.5)
+            .setDisplaySize(width, height);
+
+        // Boot music
+        this.bootMusic = this.sound.add('bootMusic', { loop: true, volume: 0.5 });
+        this.bootMusic.play();
+
+        // Floating panel in the middle
+        const panelWidth = width * 0.6;
+        const panelHeight = height * 0.3;
+        const panelX = width / 2;
+        const panelY = height / 2;
+
+        const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x000000, 0.6);
+        panel.setStrokeStyle(4, 0xffffff, 0.8);
+
+        // Title text
+        this.add.text(panelX, panelY - 60, "Jottie's World", {
+            font: "64px Georgia",
+            fill: "#fff",
+            stroke: "#000",
+            strokeThickness: 6
+        }).setOrigin(0.5);
+
+        // Start button
+        const startText = this.add.text(panelX, panelY + 30, "Start Game", {
+            font: "36px Arial",
+            fill: "#ffffaa"
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        startText.on('pointerover', () => {
+            startText.setStyle({ fill: "#ff0" });
+        });
+        startText.on('pointerout', () => {
+            startText.setStyle({ fill: "#ffffaa" });
+        });
+        startText.on('pointerdown', () => {
+            this.bootMusic.stop();
+            this.scene.start('MenuScene');
+        });
+
+        // Small footer text
+        this.add.text(width / 2, height - 40, "© 2025 Jottie's World", {
+            font: "18px Arial",
+            fill: "#ddd"
+        }).setOrigin(0.5);
     }
 }
