@@ -1,14 +1,5 @@
 import { WorldBuilder } from './world.js';
-
-const config = {
-    type: Phaser.AUTO,
-    width: 2500,
-    height: 1700,
-    physics: { default: 'arcade', arcade: { debug: false } },
-    scene: { preload, create, update }
-};
-
-const game = new Phaser.Game(config);
+import BootScene from './boot.js';
 
 let player;
 let cursors;
@@ -16,44 +7,44 @@ let lastDirection = 'down';
 const BASE_SCALE = 0.25;
 const SPEED = 180;
 
-// Frame heights for dynamic scaling
 const FRAME_HEIGHTS = {
-    jottie: 500,   // horizontal + idle
-    jottie1: 335   // vertical walking
+    jottie: 500,
+    jottie1: 335
 };
 
-// Breathing tween
 let breathTween = null;
 let backBreathTween = null;
 
+// ------------------------
+// MainScene preload
+// ------------------------
 function preload() {
-    // Horizontal + idle + turn
-    this.load.spritesheet('jottie', 'assets/jottie.png', { frameWidth: 384, frameHeight: 500 });
+    console.log("MainScene preload...");
 
-    // Vertical walking
+    this.load.spritesheet('jottie', 'assets/jottie.png', { frameWidth: 384, frameHeight: 500 });
     this.load.spritesheet('jottie1', 'assets/jottie_1.png', { frameWidth: 250, frameHeight: 335 });
 
     this.worldBuilder = new WorldBuilder(this);
     this.worldBuilder.preload();
-
 }
 
+// ------------------------
+// MainScene create
+// ------------------------
 function create() {
-    // Player starting idle front
+    console.log("MainScene started!");
+
     player = this.physics.add.sprite(1250, 700, 'jottie', 1);
     setDynamicScale('jottie');
     player.setCollideWorldBounds(true);
     player.setOrigin(0.5, 1);
 
     cursors = this.input.keyboard.createCursorKeys();
-
     this.worldBuilder.create(player);
 
-    // ------------------------
     // Animations
-    // ------------------------
-    this.anims.create({ key: 'idle-front', frames: [ { key: 'jottie', frame: 1 } ], frameRate: 1, repeat: -1 });
-    this.anims.create({ key: 'idle-back', frames: [ { key: 'jottie', frame: 3 } ], frameRate: 1, repeat: -1 });
+    this.anims.create({ key: 'idle-front', frames: [{ key: 'jottie', frame: 1 }], frameRate: 1, repeat: -1 });
+    this.anims.create({ key: 'idle-back', frames: [{ key: 'jottie', frame: 3 }], frameRate: 1, repeat: -1 });
 
     this.anims.create({ key: 'walk-right', frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 9 }), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'walk-left', frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 9 }), frameRate: 8, repeat: -1 });
@@ -63,9 +54,7 @@ function create() {
 
     player.anims.play('idle-front');
 
-    // ------------------------
-    // Breathing tween (front idle)
-    // ------------------------
+    // Breathing tween
     breathTween = this.tweens.add({
         targets: player,
         scaleX: `+=0.02`,
@@ -87,6 +76,9 @@ function create() {
     });
 }
 
+// ------------------------
+// MainScene update
+// ------------------------
 function update() {
     let moving = false;
     player.setVelocity(0);
@@ -96,18 +88,12 @@ function update() {
     const left = cursors.left.isDown;
     const right = cursors.right.isDown;
 
-    // ------------------------
-    // Determine primary facing direction
-    // ------------------------
     if (up || down) {
         lastDirection = up ? 'up' : 'down';
     } else if (left || right) {
         lastDirection = left ? 'left' : 'right';
     }
 
-    // ------------------------
-    // Vertical priority (diagonal uses vertical frames)
-    // ------------------------
     if (up) {
         player.setVelocityY(-SPEED);
         if (left) player.setVelocityX(-SPEED);
@@ -145,9 +131,6 @@ function update() {
         moving = true;
     }
 
-    // ------------------------
-    // Idle handling
-    // ------------------------
     if (!moving) {
         switch (lastDirection) {
             case 'up':
@@ -170,21 +153,32 @@ function update() {
         backBreathTween.pause();
     }
 
-    // at the end of your update() function in game.js:
     if (this.worldBuilder && this.worldBuilder.update) this.worldBuilder.update();
-
 }
 
 // ------------------------
-// Helper: scale vertical frames to match horizontal visual size
+// Helper
 // ------------------------
 function setDynamicScale(sheetKey) {
     if (sheetKey === 'jottie1') {
-        const desiredHeight = FRAME_HEIGHTS.jottie; // 500
-        const frameHeight = FRAME_HEIGHTS.jottie1;  // 335
-        const scale = BASE_SCALE * (desiredHeight / frameHeight); // match horizontal size
+        const desiredHeight = FRAME_HEIGHTS.jottie;
+        const frameHeight = FRAME_HEIGHTS.jottie1;
+        const scale = BASE_SCALE * (desiredHeight / frameHeight);
         player.setScale(scale);
     } else {
         player.setScale(BASE_SCALE);
     }
 }
+
+// ------------------------
+// Game config
+// ------------------------
+const config = {
+    type: Phaser.AUTO,
+    width: 2500,
+    height: 1700,
+    physics: { default: 'arcade', arcade: { debug: false } },
+    scene: [BootScene, { key: 'MainScene', preload, create, update }]
+};
+
+const game = new Phaser.Game(config);

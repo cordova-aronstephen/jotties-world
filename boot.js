@@ -5,14 +5,17 @@ export default class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // Background image for the boot/loading page
-        this.load.image('bootBg', 'assets/boot_bg.png'); // <-- replace with your own bg later
+        // Background image
+        this.load.image('bootBg', 'assets/boot_bg.png');
+
+        // Music
         this.load.audio('bootMusic', 'assets/audio/stardew_valley_loadgame.m4a');
     }
 
     create() {
-        // Background stretched to fill screen
         const { width, height } = this.scale;
+
+        // Background stretched
         this.add.image(width / 2, height / 2, 'bootBg')
             .setOrigin(0.5)
             .setDisplaySize(width, height);
@@ -21,7 +24,7 @@ export default class BootScene extends Phaser.Scene {
         this.bootMusic = this.sound.add('bootMusic', { loop: true, volume: 0.5 });
         this.bootMusic.play();
 
-        // Floating panel in the middle
+        // Floating panel
         const panelWidth = width * 0.6;
         const panelHeight = height * 0.3;
         const panelX = width / 2;
@@ -30,7 +33,7 @@ export default class BootScene extends Phaser.Scene {
         const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x000000, 0.6);
         panel.setStrokeStyle(4, 0xffffff, 0.8);
 
-        // Title text
+        // Title
         this.add.text(panelX, panelY - 60, "Jottie's World", {
             font: "64px Georgia",
             fill: "#fff",
@@ -44,18 +47,16 @@ export default class BootScene extends Phaser.Scene {
             fill: "#ffffaa"
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        startText.on('pointerover', () => {
-            startText.setStyle({ fill: "#ff0" });
-        });
-        startText.on('pointerout', () => {
-            startText.setStyle({ fill: "#ffffaa" });
-        });
+        startText.on('pointerover', () => startText.setStyle({ fill: "#ff0" }));
+        startText.on('pointerout', () => startText.setStyle({ fill: "#ffffaa" }));
+
         startText.on('pointerdown', () => {
             this.bootMusic.stop();
-            this.scene.start('MenuScene');
+            console.log("BootScene → MainScene");
+            this.scene.start('MainScene');   // ✅ go straight into game
         });
 
-        // Small footer text
+        // Footer
         this.add.text(width / 2, height - 40, "© 2025 Jottie's World", {
             font: "18px Arial",
             fill: "#ddd"
