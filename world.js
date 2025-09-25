@@ -4,20 +4,20 @@ export class WorldBuilder {
         this.scene = scene;
         this.map = null;
 
-        this.music = null;
-        this.altMusic = null;
+        this.music = null;     // Overture (outside)
+        this.altMusic = null;  // Spring (inside)
 
         this.houseZone = null;
         this.doorZone = null;
 
         this.promptText = null;
         this.inHouse = false;
-        this.debugDoorGraphics = null; // debug overlay for door
-        this.doorPrompt = null;        // text above red rectangle
+        this.debugDoorGraphics = null;
+        this.doorPrompt = null;
     }
 
     preload() {
-        this.scene.load.image('worldMap', 'assets/map.png'); 
+        this.scene.load.image('worldMap', 'assets/map.png');
         this.scene.load.image('houseInterior', 'assets/house.png');
 
         this.scene.load.audio('song1', 'assets/audio/stardew_valley_overture.m4a');
@@ -27,11 +27,14 @@ export class WorldBuilder {
     create(player) {
         this.loadOutsideMap(player);
 
-        // Music
+        // Create both tracks
         this.music = this.scene.sound.add('song1', { loop: true, volume: 0.5 });
         this.altMusic = this.scene.sound.add('song2', { loop: true, volume: 0.5 });
+
+        // Start outside music
         this.music.play();
 
+        // M key to manually toggle between songs
         this.scene.input.keyboard.on('keydown-M', () => {
             if (this.music.isPlaying) {
                 this.music.stop();
@@ -42,7 +45,7 @@ export class WorldBuilder {
             }
         });
 
-        // Enter/exit house
+        // E key for enter/exit house
         this.scene.input.keyboard.on('keydown-E', () => {
             if (!this.inHouse && this.scene.physics.overlap(player, this.houseZone)) {
                 this.enterHouse(player);
@@ -51,7 +54,7 @@ export class WorldBuilder {
             }
         });
 
-        // Floating prompt (for outside only)
+        // Floating prompt for outside
         this.promptText = this.scene.add.text(0, 0, "", {
             font: "18px Arial",
             fill: "#fff",
@@ -59,25 +62,18 @@ export class WorldBuilder {
             padding: { x: 6, y: 3 }
         }).setOrigin(0.5).setVisible(false);
 
-        // Prompt logic
+        // Prompt updates
         this.scene.events.on("update", () => {
             if (!this.inHouse && this.scene.physics.overlap(player, this.houseZone)) {
-                // Outside → show "enter" prompt
                 this.promptText.setText("Press E to Enter");
                 this.promptText.setPosition(player.x, player.y - 80);
                 this.promptText.setVisible(true);
             } else {
-                // Hide when not overlapping
                 this.promptText.setVisible(false);
             }
 
-            // Inside → handle door prompt separately
             if (this.inHouse && this.doorZone && this.doorPrompt) {
-                if (this.scene.physics.overlap(player, this.doorZone)) {
-                    this.doorPrompt.setVisible(true);
-                } else {
-                    this.doorPrompt.setVisible(false);
-                }
+                this.doorPrompt.setVisible(this.scene.physics.overlap(player, this.doorZone));
             }
         });
     }
@@ -99,7 +95,7 @@ export class WorldBuilder {
         this.scene.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
         this.scene.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-        // House trigger zone
+        // House entrance zone
         const houseX = 230 * scale;
         const houseY = 250 * scale;
         const houseWidth = 53 * scale;
@@ -115,6 +111,10 @@ export class WorldBuilder {
     enterHouse(player) {
         this.inHouse = true;
 
+        // Music switch
+        if (this.music.isPlaying) this.music.stop();
+        if (!this.altMusic.isPlaying) this.altMusic.play();
+
         this.scene.cameras.main.fadeOut(600, 0, 0, 0);
         this.scene.cameras.main.once('camerafadeoutcomplete', () => {
             if (this.map) this.map.destroy();
@@ -124,12 +124,11 @@ export class WorldBuilder {
             if (this.doorPrompt) this.doorPrompt.destroy();
 
             // Add house interior
-            const houseKey = 'houseInterior';
             const scale = 3;
             const houseWidth = 918;
             const houseHeight = 515;
 
-            this.map = this.scene.add.image(0, 0, houseKey).setOrigin(0, 0);
+            this.map = this.scene.add.image(0, 0, 'houseInterior').setOrigin(0, 0);
             this.map.setScale(scale);
             this.map.setDepth(0);
 
@@ -140,7 +139,7 @@ export class WorldBuilder {
             this.scene.cameras.main.setBounds(0, 0, mapScaledWidth, mapScaledHeight);
             this.scene.cameras.main.centerOn(mapScaledWidth / 2, mapScaledHeight / 2);
 
-            // Player inside (higher up)
+            // Player position inside
             player.setPosition(mapScaledWidth / 2, mapScaledHeight - 200);
             player.setOrigin(0.5, 1);
             player.setDepth(1);
@@ -155,12 +154,12 @@ export class WorldBuilder {
             this.doorZone.body.setAllowGravity(false);
             this.doorZone.body.setImmovable(true);
 
-            // 🔎 Debug rectangle
+            // Debug rectangle
             this.debugDoorGraphics = this.scene.add.graphics();
             this.debugDoorGraphics.fillStyle(0xff0000, 0.3);
             this.debugDoorGraphics.fillRect(doorX, doorY, doorWidth, doorHeight);
 
-            // Prompt text fixed above red rectangle
+            // Prompt above door
             this.doorPrompt = this.scene.add.text(doorX + doorWidth / 2, doorY - 10, "Press E to Leave", {
                 font: "16px Arial",
                 fill: "#fff",
@@ -174,6 +173,10 @@ export class WorldBuilder {
 
     leaveHouse(player) {
         this.inHouse = false;
+
+        // Music switch
+        if (this.altMusic.isPlaying) this.altMusic.stop();
+        if (!this.music.isPlaying) this.music.play();
 
         this.scene.tweens.add({
             targets: player,
@@ -189,7 +192,6 @@ export class WorldBuilder {
 
                     this.loadOutsideMap(player);
 
-                    // Place player further left + further down outside
                     const outsideX = this.houseZone.x + this.houseZone.width / 2 - 70;
                     const outsideY = this.houseZone.y + this.houseZone.height + 50;
                     player.setPosition(outsideX, outsideY);

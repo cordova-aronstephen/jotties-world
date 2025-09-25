@@ -85,20 +85,26 @@ function create() {
     });
 
     // ------------------------
-    // Menu Button (top-right)
+    // Menu Button (always on top)
     // ------------------------
     const menuButton = this.add.circle(2400, 100, 40, 0x999999)
         .setStrokeStyle(4, 0xffffff)
+        .setScrollFactor(0)
         .setInteractive({ useHandCursor: true });
 
     const menuIcon = this.add.text(2400, 100, "≡", {
         font: "32px Arial",
         fill: "#fff"
-    }).setOrigin(0.5).setInteractive();
+    }).setOrigin(0.5)
+      .setScrollFactor(0)
+      .setInteractive();
 
     const openMenu = () => {
-        this.scene.launch('MenuScene', { mainScene: this, music: this.bootMusic });
-        this.scene.pause();
+        // Prevent multiple launches
+        if (!this.scene.isActive('MenuScene')) {
+            this.scene.launch('MenuScene', { mainScene: this });
+            this.scene.pause();
+        }
     };
 
     menuButton.on('pointerdown', openMenu);
@@ -194,7 +200,7 @@ function update() {
         backBreathTween.pause();
     }
 
-    // at the end of your update() function in game.js:
+    // Keep updating world logic
     if (this.worldBuilder && this.worldBuilder.update) this.worldBuilder.update();
 }
 
