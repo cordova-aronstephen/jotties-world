@@ -1,5 +1,7 @@
+// game.js
 import { WorldBuilder } from './world.js';
 import BootScene from './boot.js';
+import MenuScene from './menu.js';
 
 let player;
 let cursors;
@@ -7,11 +9,13 @@ let lastDirection = 'down';
 const BASE_SCALE = 0.25;
 const SPEED = 180;
 
+// Frame heights for dynamic scaling
 const FRAME_HEIGHTS = {
-    jottie: 500,
-    jottie1: 335
+    jottie: 500,   // horizontal + idle
+    jottie1: 335   // vertical walking
 };
 
+// Breathing tween
 let breathTween = null;
 let backBreathTween = null;
 
@@ -19,9 +23,10 @@ let backBreathTween = null;
 // MainScene preload
 // ------------------------
 function preload() {
-    console.log("MainScene preload...");
-
+    // Horizontal + idle + turn
     this.load.spritesheet('jottie', 'assets/jottie.png', { frameWidth: 384, frameHeight: 500 });
+
+    // Vertical walking
     this.load.spritesheet('jottie1', 'assets/jottie_1.png', { frameWidth: 250, frameHeight: 335 });
 
     this.worldBuilder = new WorldBuilder(this);
@@ -32,19 +37,21 @@ function preload() {
 // MainScene create
 // ------------------------
 function create() {
-    console.log("MainScene started!");
-
+    // Player starting idle front
     player = this.physics.add.sprite(1250, 700, 'jottie', 1);
     setDynamicScale('jottie');
     player.setCollideWorldBounds(true);
     player.setOrigin(0.5, 1);
 
     cursors = this.input.keyboard.createCursorKeys();
+
     this.worldBuilder.create(player);
 
+    // ------------------------
     // Animations
-    this.anims.create({ key: 'idle-front', frames: [{ key: 'jottie', frame: 1 }], frameRate: 1, repeat: -1 });
-    this.anims.create({ key: 'idle-back', frames: [{ key: 'jottie', frame: 3 }], frameRate: 1, repeat: -1 });
+    // ------------------------
+    this.anims.create({ key: 'idle-front', frames: [ { key: 'jottie', frame: 1 } ], frameRate: 1, repeat: -1 });
+    this.anims.create({ key: 'idle-back', frames: [ { key: 'jottie', frame: 3 } ], frameRate: 1, repeat: -1 });
 
     this.anims.create({ key: 'walk-right', frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 9 }), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'walk-left', frames: this.anims.generateFrameNumbers('jottie', { start: 5, end: 9 }), frameRate: 8, repeat: -1 });
@@ -54,7 +61,9 @@ function create() {
 
     player.anims.play('idle-front');
 
-    // Breathing tween
+    // ------------------------
+    // Breathing tween (front idle)
+    // ------------------------
     breathTween = this.tweens.add({
         targets: player,
         scaleX: `+=0.02`,
@@ -74,6 +83,29 @@ function create() {
         repeat: -1,
         paused: true
     });
+
+    // ------------------------
+    // Menu Button (top-right)
+    // ------------------------
+    const menuButton = this.add.circle(2400, 100, 40, 0x999999)
+        .setStrokeStyle(4, 0xffffff)
+        .setInteractive({ useHandCursor: true });
+
+    const menuIcon = this.add.text(2400, 100, "≡", {
+        font: "32px Arial",
+        fill: "#fff"
+    }).setOrigin(0.5).setInteractive();
+
+    const openMenu = () => {
+        this.scene.launch('MenuScene', { mainScene: this, music: this.bootMusic });
+        this.scene.pause();
+    };
+
+    menuButton.on('pointerdown', openMenu);
+    menuIcon.on('pointerdown', openMenu);
+
+    // ESC key shortcut for menu
+    this.input.keyboard.on('keydown-ESC', openMenu);
 }
 
 // ------------------------
@@ -88,12 +120,18 @@ function update() {
     const left = cursors.left.isDown;
     const right = cursors.right.isDown;
 
+    // ------------------------
+    // Determine primary facing direction
+    // ------------------------
     if (up || down) {
         lastDirection = up ? 'up' : 'down';
     } else if (left || right) {
         lastDirection = left ? 'left' : 'right';
     }
 
+    // ------------------------
+    // Vertical priority (diagonal uses vertical frames)
+    // ------------------------
     if (up) {
         player.setVelocityY(-SPEED);
         if (left) player.setVelocityX(-SPEED);
@@ -131,6 +169,9 @@ function update() {
         moving = true;
     }
 
+    // ------------------------
+    // Idle handling
+    // ------------------------
     if (!moving) {
         switch (lastDirection) {
             case 'up':
@@ -153,17 +194,18 @@ function update() {
         backBreathTween.pause();
     }
 
+    // at the end of your update() function in game.js:
     if (this.worldBuilder && this.worldBuilder.update) this.worldBuilder.update();
 }
 
 // ------------------------
-// Helper
+// Helper: scale vertical frames to match horizontal visual size
 // ------------------------
 function setDynamicScale(sheetKey) {
     if (sheetKey === 'jottie1') {
-        const desiredHeight = FRAME_HEIGHTS.jottie;
-        const frameHeight = FRAME_HEIGHTS.jottie1;
-        const scale = BASE_SCALE * (desiredHeight / frameHeight);
+        const desiredHeight = FRAME_HEIGHTS.jottie; // 500
+        const frameHeight = FRAME_HEIGHTS.jottie1;  // 335
+        const scale = BASE_SCALE * (desiredHeight / frameHeight); // match horizontal size
         player.setScale(scale);
     } else {
         player.setScale(BASE_SCALE);
@@ -178,7 +220,7 @@ const config = {
     width: 2500,
     height: 1700,
     physics: { default: 'arcade', arcade: { debug: false } },
-    scene: [BootScene, { key: 'MainScene', preload, create, update }]
+    scene: [BootScene, { key: 'MainScene', preload, create, update }, MenuScene]
 };
 
 const game = new Phaser.Game(config);
