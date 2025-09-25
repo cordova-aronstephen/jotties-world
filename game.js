@@ -1,14 +1,22 @@
-import { WorldBuilder } from './world.js';
+import BootScene from './boot.js';
+import MenuScene from './menu.js';
+import GameScene from './game.js';
 
 const config = {
     type: Phaser.AUTO,
-    width: 2500,
-    height: 1700,
-    physics: { default: 'arcade', arcade: { debug: false } },
-    scene: { preload, create, update }
+    width: 800,
+    height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            debug: false
+        }
+    },
+    scene: [BootScene, MenuScene, GameScene]
 };
 
 const game = new Phaser.Game(config);
+
 
 let player;
 let cursors;
