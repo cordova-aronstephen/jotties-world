@@ -151,7 +151,7 @@ export default class BootScene extends Phaser.Scene {
 
     _submitPassword() {
         const attempt = this.entered ?? "";
-        const CORRECT = "jottie"; // change password here if needed
+        const CORRECT = "09252005_jottiE"; // change password here if needed
 
         if (attempt === CORRECT) {
             // success
