@@ -1,4 +1,3 @@
-// menu.js
 export default class MenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MenuScene' });
@@ -57,11 +56,7 @@ export default class MenuScene extends Phaser.Scene {
         this._addButton(cx, cy, 'Volume', () => this.buildVolumeView());
         this._addButton(cx, cy + 60, 'Controls', () => this.buildControlsView());
         this._addButton(cx, cy + 120, 'Back to Title', () => {
-            if (this.mainScene && this.mainScene.mainMusic && this.mainScene.mainMusic.isPlaying) {
-                this.mainScene.mainMusic.stop();
-            } else {
-                this.sound.stopAll();
-            }
+            this.sound.stopAll();
             this.scene.stop('MainScene');
             this.scene.start('BootScene');
         });
@@ -86,6 +81,7 @@ export default class MenuScene extends Phaser.Scene {
 
         this._addSlider(cx, cy - 20, 'Ambient', this.registry.get('volumeAmbient'), (v) => {
             this.registry.set('volumeAmbient', v);
+            if (this.mainScene?.ambient) this.mainScene.ambient.setVolume(v);
         });
 
         this._addSlider(cx, cy + 40, 'SFX', this.registry.get('volumeSFX'), (v) => {
