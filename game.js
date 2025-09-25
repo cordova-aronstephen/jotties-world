@@ -226,7 +226,10 @@ const config = {
     width: 2500,
     height: 1700,
     physics: { default: 'arcade', arcade: { debug: false } },
-    scene: [BootScene, { key: 'MainScene', preload, create, update }, MenuScene]
+    scene: [BootScene, { key: 'MainScene', preload, create, update }, MenuScene],
+    dom: {
+        createContainer: true
+    }
 };
 
 const game = new Phaser.Game(config);
