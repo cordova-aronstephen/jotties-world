@@ -7,7 +7,7 @@ let player;
 let cursors;
 let lastDirection = 'down';
 const BASE_SCALE = 0.25;
-const SPEED = 180;
+const SPEED = 4000;
 
 // Frame heights for dynamic scaling
 const FRAME_HEIGHTS = {
@@ -19,9 +19,7 @@ const FRAME_HEIGHTS = {
 let breathTween = null;
 let backBreathTween = null;
 
-// ------------------------
 // MainScene preload
-// ------------------------
 function preload() {
     // Horizontal + idle + turn
     this.load.spritesheet('jottie', 'assets/jottie.png', { frameWidth: 384, frameHeight: 500 });
@@ -33,9 +31,7 @@ function preload() {
     this.worldBuilder.preload();
 }
 
-// ------------------------
 // MainScene create
-// ------------------------
 function create() {
     // Player starting idle front
     player = this.physics.add.sprite(1250, 700, 'jottie', 1);
@@ -47,9 +43,7 @@ function create() {
 
     this.worldBuilder.create(player);
 
-    // ------------------------
     // Animations
-    // ------------------------
     this.anims.create({ key: 'idle-front', frames: [ { key: 'jottie', frame: 1 } ], frameRate: 1, repeat: -1 });
     this.anims.create({ key: 'idle-back', frames: [ { key: 'jottie', frame: 3 } ], frameRate: 1, repeat: -1 });
 
@@ -61,9 +55,7 @@ function create() {
 
     player.anims.play('idle-front');
 
-    // ------------------------
     // Breathing tween (front idle)
-    // ------------------------
     breathTween = this.tweens.add({
         targets: player,
         scaleX: `+=0.02`,
@@ -84,9 +76,7 @@ function create() {
         paused: true
     });
 
-    // ------------------------
     // Menu Button (always on top)
-    // ------------------------
     const menuButton = this.add.circle(2400, 100, 40, 0x999999)
         .setStrokeStyle(4, 0xffffff)
         .setScrollFactor(0)
@@ -114,9 +104,7 @@ function create() {
     this.input.keyboard.on('keydown-ESC', openMenu);
 }
 
-// ------------------------
 // MainScene update
-// ------------------------
 function update() {
     let moving = false;
     player.setVelocity(0);
@@ -126,18 +114,14 @@ function update() {
     const left = cursors.left.isDown;
     const right = cursors.right.isDown;
 
-    // ------------------------
     // Determine primary facing direction
-    // ------------------------
     if (up || down) {
         lastDirection = up ? 'up' : 'down';
     } else if (left || right) {
         lastDirection = left ? 'left' : 'right';
     }
 
-    // ------------------------
     // Vertical priority (diagonal uses vertical frames)
-    // ------------------------
     if (up) {
         player.setVelocityY(-SPEED);
         if (left) player.setVelocityX(-SPEED);
@@ -175,9 +159,7 @@ function update() {
         moving = true;
     }
 
-    // ------------------------
     // Idle handling
-    // ------------------------
     if (!moving) {
         switch (lastDirection) {
             case 'up':
@@ -204,9 +186,7 @@ function update() {
     if (this.worldBuilder && this.worldBuilder.update) this.worldBuilder.update();
 }
 
-// ------------------------
 // Helper: scale vertical frames to match horizontal visual size
-// ------------------------
 function setDynamicScale(sheetKey) {
     if (sheetKey === 'jottie1') {
         const desiredHeight = FRAME_HEIGHTS.jottie; // 500
@@ -218,9 +198,7 @@ function setDynamicScale(sheetKey) {
     }
 }
 
-// ------------------------
 // Game config
-// ------------------------
 const config = {
     type: Phaser.AUTO,
     width: 2500,
